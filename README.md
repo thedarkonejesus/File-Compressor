@@ -22,7 +22,7 @@ Algorithm Details
     Uses LZ77 dictionary matching for pattern recognition
     Applies Huffman encoding for optimal bit representation
     Configurable parameters for different use cases
-```python
+```python #Quickstart
 
 from src.compressor import compress_file
 
