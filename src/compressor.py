@@ -1,40 +1,31 @@
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at http://mozilla.org/MPL/2.0/.
-
-import os
 import struct
 import zlib
-from .lz77 import lz77_compress
-from .huffman import huffman_encode
+from .lz77 import lz77_decompress # Ensure you have this function in lz77.py
+from .huffman import huffman_decode # Ensure you have this function in huffman.py
 
-CHUNK_SIZE = 64 * 1024  # 64KB
-
-def compress_file(input_path, output_path=None):
+def decompress_file(input_path, output_path=None):
     if output_path is None:
-        output_path = os.path.splitext(input_path)[0] + ".vzip"
+        output_path = os.path.splitext(input_path)[0] + ".restored"
     
     with open(input_path, 'rb') as fin, open(output_path, 'wb') as fout:
         while True:
-            chunk = fin.read(CHUNK_SIZE)
-            if not chunk: break
+            # 1. Read Header (9 bytes: Checksum (4), Size (4), Padding (1))
+            header = fin.read(9)
+            if not header: break
             
-            # 1. Calculate integrity checksum
-            checksum = zlib.crc32(chunk) & 0xFFFFFFFF
+            checksum, size, padding = struct.unpack('IIB', header)
             
-            # 2. Compress
-            lz_data = lz77_compress(chunk)
-            encoded, padding, table = huffman_encode(lz_data)
+            # 2. Read Encoded Payload
+            encoded_data = fin.read(size)
             
-            # 3. Write Header: Checksum (I), Encoded size (I), Padding (B)
-            # The 'I' format is a 4-byte unsigned integer
-            fout.write(struct.pack('IIB', checksum, len(encoded), padding))
-            fout.write(encoded)
+            # 3. Decode Pipeline
+            lz_data = huffman_decode(encoded_data, padding)
+            original_chunk = lz77_decompress(lz_data)
+            
+            # 4. Integrity Verification
+            if (zlib.crc32(original_chunk) & 0xFFFFFFFF) != checksum:
+                raise ValueError("Data corruption detected: Checksum mismatch!")
+            
+            fout.write(original_chunk)
             
     return output_path
-
-def decompress_file(input_path, output_path=None):
-    # Stub for the decompression logic
-    # In your next phase, you will read the 9 bytes of header 
-    # and use zlib.crc32 to verify the decompressed chunk.
-    pass
