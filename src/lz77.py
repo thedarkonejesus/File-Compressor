@@ -1,18 +1,31 @@
-Python 2.7.18 (v2.7.18:8d21aa21f2, Apr 20 2020, 13:19:08) [MSC v.1500 32 bit (Intel)] on win32
-Type "help", "copyright", "credits" or "license()" for more information.
->>> def lz77_compress(data, window_size=4096, look_ahead=18):
+"""
+VectorZip LZ77 Engine
+---------------------
+Implements sliding window dictionary matching for redundant pattern elimination.
+Optimized for cross-version compatibility using struct.pack.
+"""
+
+import struct
+
+def lz77_compress(data, window_size=4096, look_ahead=18):
+    """
+    Compresses data using LZ77.
+    Returns a bytearray of (distance, length, next_char) tuples.
+    """
     result = bytearray()
     i = 0
+    data_len = len(data)
     
-    while i < len(data):
+    while i < data_len:
         match_length = 0
         match_distance = 0
         
-        # Find longest match in sliding window
-        for j in range(max(0, i-window_size), i):
+        # Search sliding window for the longest match
+        start_search = max(0, i - window_size)
+        for j in range(start_search, i):
             length = 0
-            while (i+length < len(data) and 
-                   data[j+length] == data[i+length] and 
+            while (i + length < data_len and 
+                   data[j + length] == data[i + length] and 
                    length < look_ahead):
                 length += 1
             
@@ -20,15 +33,17 @@ Type "help", "copyright", "credits" or "license()" for more information.
                 match_length = length
                 match_distance = i - j
         
+        # Ensure we don't go out of bounds on the final character
+        next_char = data[i + match_length] if (i + match_length) < data_len else 0
+        
         if match_length > 0:
-            # Output: (distance, length, next_char)
-            result.extend((match_distance & 0xFF).to_bytes(1, 'big'))
-            result.extend(((match_distance >> 8) & 0xFF).to_bytes(1, 'big'))
-            result.append(match_length)
-            result.append(data[i+match_length])
+            # Pack: Distance (H - unsigned short, 2 bytes), Length (B - unsigned char), Char (B)
+            # This is significantly faster and more compatible than manual bit-shifting
+            result.extend(struct.pack('>HB B', match_distance, match_length, ord(next_char)))
             i += match_length + 1
         else:
-            result.append(data[i])
+            # Literal character
+            result.extend(struct.pack('>B', ord(data[i])))
             i += 1
-    
+            
     return bytes(result)
