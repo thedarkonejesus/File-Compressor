@@ -4,6 +4,7 @@
 
 import os
 import struct
+import zlib
 from .lz77 import lz77_compress
 from .huffman import huffman_encode
 
@@ -18,10 +19,22 @@ def compress_file(input_path, output_path=None):
             chunk = fin.read(CHUNK_SIZE)
             if not chunk: break
             
+            # 1. Calculate integrity checksum
+            checksum = zlib.crc32(chunk) & 0xFFFFFFFF
+            
+            # 2. Compress
             lz_data = lz77_compress(chunk)
             encoded, padding, table = huffman_encode(lz_data)
             
-            # Header: Encoded size (I), Padding (B)
-            fout.write(struct.pack('IB', len(encoded), padding))
+            # 3. Write Header: Checksum (I), Encoded size (I), Padding (B)
+            # The 'I' format is a 4-byte unsigned integer
+            fout.write(struct.pack('IIB', checksum, len(encoded), padding))
             fout.write(encoded)
+            
     return output_path
+
+def decompress_file(input_path, output_path=None):
+    # Stub for the decompression logic
+    # In your next phase, you will read the 9 bytes of header 
+    # and use zlib.crc32 to verify the decompressed chunk.
+    pass
