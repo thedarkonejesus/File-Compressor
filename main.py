@@ -1,32 +1,36 @@
 import sys
+import argparse
+from tqdm import tqdm
 from src.compressor import compress_file, decompress_file
 
-def print_usage():
-    print("VectorZip CLI")
-    print("Usage:")
-    print("  python main.py compress <file_path>")
-    print("  python main.py decompress <file_path>")
-
 def main():
-    if len(sys.argv) < 3:
-        print_usage()
-        return
-
-    command = sys.argv[1].lower()
-    file_path = sys.argv[2]
+    parser = argparse.ArgumentParser(
+        description="VectorZip: A high-performance, chunked-processing compression utility."
+    )
+    parser.add_argument("action", choices=["compress", "decompress"], help="Action to perform")
+    parser.add_argument("file", help="Path to the target file")
+    
+    args = parser.parse_args()
 
     try:
-        if command == 'compress':
-            out = compress_file(file_path)
-            print("Successfully compressed to: {}".format(out))
-        elif command == 'decompress':
-            out = decompress_file(file_path)
-            print("Successfully decompressed to: {}".format(out))
-        else:
-            print("Unknown command: {}".format(command))
-            print_usage()
+        if args.action == "compress":
+            print("Compressing: {}".format(args.file))
+            # Wrap the operation in tqdm for a progress bar
+            with tqdm(total=100, desc="Processing") as pbar:
+                output = compress_file(args.file)
+                pbar.update(100)
+            print("Success! Created: {}".format(output))
+            
+        elif args.action == "decompress":
+            print("Decompressing: {}".format(args.file))
+            with tqdm(total=100, desc="Processing") as pbar:
+                output = decompress_file(args.file)
+                pbar.update(100)
+            print("Success! Extracted: {}".format(output))
+            
     except Exception as e:
         print("Error: Operation failed - {}".format(e))
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
