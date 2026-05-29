@@ -1,33 +1,20 @@
-# File Compressor
+# VectorZip
 
-A high-efficiency file compression tool implementing LZ77 and Huffman encoding algorithms.
+**VectorZip** is a high-performance, lossless file compression library that combines **LZ77** sliding window dictionary matching with **Huffman** entropy coding.
+
+
 
 ## Features
-- Maximum compression ratio (lossless)
-- Multiple file format support
-- Command-line and programmatic interfaces
-- Memory-efficient implementation
-- Cross-platform compatibility
+- **Hybrid Compression:** Leverages LZ77 for redundancy elimination and Huffman for optimal bit-packing.
+- **Lossless:** Guarantees 100% data integrity during compression and restoration.
+- **Memory-Efficient:** Optimized for low-overhead processing of binary streams.
+- **Portable:** Written with strict cross-version compatibility for Python 2.7 and 3.x.
+- **Developer-Friendly:** Clean API designed for both CLI and programmatic integration.
 
 ## Installation
 
 ```bash
-git clone https://github.com/your-org/file-compressor.git
-cd file-compressor
-pip install -e .
+git clone [https://github.com/thedarkonejesus/VectorZip](https://github.com/thedarkonejesus/VectorZip)
+cd VectorZip
+pip install .
 
-```
-Algorithm Details
-
-    Uses LZ77 dictionary matching for pattern recognition
-    Applies Huffman encoding for optimal bit representation
-    Configurable parameters for different use cases
-```python #Quickstart
-
-from src.compressor import compress_file
-
-# Compress a file
-compress_file('input.txt', 'output.comp')
-
-# Decompress a file
-decompress_file('output.comp', 'output.txt')
