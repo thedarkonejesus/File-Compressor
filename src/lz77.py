@@ -1,25 +1,23 @@
-"""
-VectorZip LZ77 Engine
----------------------
-Optimized search using hash chains for O(N) lookup speed.
-"""
+import struct
 
-def lz77_compress(data, window_size=4096):
+def lz77_compress(data, window_size=4096, look_ahead=18):
     result = bytearray()
     i = 0
-    # Hash table to store last seen positions of 3-byte sequences
-    hash_map = {} 
+    data_len = len(data)
     
-    while i < len(data):
-        # Optimization: Use hash map to find potential matches instead of linear scan
-        # This reduces search complexity from O(N*W) to O(N)
-        match_len = 0
-        match_dist = 0
+    while i < data_len:
+        match_len, match_dist = 0, 0
+        search_start = max(0, i - window_size)
         
-        # ... [Logic to check hash_map for window indices] ...
+        for j in range(search_start, i):
+            length = 0
+            while (i + length < data_len and data[j + length] == data[i + length] 
+                   and length < look_ahead):
+                length += 1
+            if length > match_len:
+                match_len, match_dist = length, i - j
         
-        # Fallback to literal if no match
-        result.append(data[i])
-        i += 1
-        
+        next_char = data[i + match_len] if (i + match_len) < data_len else 0
+        result.extend(struct.pack('>HBB', match_dist, match_len, ord(next_char)))
+        i += match_len + 1
     return bytes(result)
