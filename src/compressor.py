@@ -1,72 +1,63 @@
-Python 2.7.18 (v2.7.18:8d21aa21f2, Apr 20 2020, 13:19:08) [MSC v.1500 32 bit (Intel)] on win32
-Type "help", "copyright", "credits" or "license()" for more information.
->>> # src/compressor.py
+"""
+VectorZip Core Compressor Engine
+--------------------------------
+Handles the hybrid LZ77 + Huffman pipeline. Optimized for binary stream integrity.
+"""
+
+import os
+import struct
 from .lz77 import lz77_compress
 from .huffman import huffman_encode
-import struct
-import os
 
 def compress_file(input_path, output_path=None):
-    """Compress a file using LZ77 + Huffman encoding"""
-    # Read input file
+    """Compresses file using LZ77 + Huffman. Uses struct for Python 2/3 compatibility."""
     with open(input_path, 'rb') as f:
         data = f.read()
     
-    # Apply LZ77 compression
     lz_data = lz77_compress(data)
-    
-    # Apply Huffman encoding
     encoded_data, padding, table = huffman_encode(lz_data)
     
-    # Generate output filename if not specified
     if output_path is None:
-        base, _ = os.path.splitext(input_path)
-        output_path = f"{base}.comp"
+        output_path = os.path.splitext(input_path)[0] + ".vzip"
     
-    # Write compressed file with metadata
     with open(output_path, 'wb') as f:
-        # Write padding info (1 byte)
-        f.write(struct.pack('B', padding))
+        # Header: Padding (1 byte), Table Size (4 bytes, unsigned int)
+        f.write(struct.pack('BI', padding, len(table)))
         
-        # Write Huffman table (size + entries)
-        f.write(len(table).to_bytes(4, 'big'))
+        # Write Huffman table
         for symbol, code in table.items():
-            f.write(symbol.to_bytes(1, 'big'))
-            f.write(len(code).to_bytes(1, 'big'))
-            f.write(int(code, 2).to_bytes((len(code)+7)//8, 'big'))
+            code_int = int(code, 2)
+            code_len = len(code)
+            byte_len = (code_len + 7) // 8
+            # Store: Symbol (1B), Length (1B), Code (variable)
+            f.write(struct.pack('BB', symbol, code_len))
+            # Write code bits manually for portability
+            f.write(struct.pack('>' + 'B' * byte_len, *[(code_int >> (8 * (byte_len - 1 - i))) & 0xFF for i in range(byte_len)]))
         
-        # Write encoded data
+        # Write encoded payload
         f.write(encoded_data)
-    
+        
     return output_path
 
 def decompress_file(input_path, output_path=None):
-    """Decompress a file using LZ77 + Huffman decoding"""
-    # Read compressed file
+    """Decompression logic stub for VectorZip implementation."""
     with open(input_path, 'rb') as f:
-        padding = struct.unpack('B', f.read(1))[0]
-        table_size = int.from_bytes(f.read(4), 'big')
+        header = f.read(5)
+        padding, table_size = struct.unpack('BI', header)
         
-        # Reconstruct Huffman table
         table = {}
         for _ in range(table_size):
-            symbol = struct.unpack('B', f.read(1))[0]
-            code_len = struct.unpack('B', f.read(1))[0]
-            code = f.read((code_len+7)//8)
-            table[symbol] = code
-        
-        # Read encoded data
+            symbol, code_len = struct.unpack('BB', f.read(2))
+            # Reconstruct code string here...
+            
         encoded_data = f.read()
     
-    # Decode Huffman -> LZ77 -> original
-    # (Implementation details omitted for brevity)
+    # Placeholder for the decoding sequence: Huffman -> LZ77 -> Original
+    # decompressed_data = ... 
     
-    # Write decompressed file
     if output_path is None:
-        base, _ = os.path.splitext(input_path)
-        output_path = f"{base}_decompressed"
-    
-    with open(output_path, 'wb') as f:
-        f.write(decompressed_data)
-    
+        output_path = os.path.splitext(input_path)[0] + ".restored"
+        
+    # with open(output_path, 'wb') as f:
+    #     f.write(decompressed_data)
     return output_path
